@@ -238,6 +238,10 @@ test('session: access() fails closed without a grant and revoke() marks the gran
     await store.writeSession({ version: 1, token: 'devin-session-token$abc.def.ghi', expiresAt: Date.now() + 60_000, expirySource: 'fallback' })
     await sessions.reload()
     assert.equal(sessions.available(), true)
+    // A grant that already existed at activation must not be reported as
+    // "Not signed in." just because no login ran in this process.
+    assert.match(sessions.getStatus().message, /^Signed in\. Expires/)
+    assert.match(await sessions.statusText(), /^Signed in\. Expires/)
     const access = await sessions.access()
     assert.equal(access.token, 'devin-session-token$abc.def.ghi')
 
@@ -317,6 +321,12 @@ test('apply() registers commands, provider, tool, guard and API; switches are li
     )
     for (const path of services.state.routes.keys()) {
       assert.ok(path.startsWith('/api/'), `${path} must live under /api`)
+    }
+    // 'streaming' makes the carrier build a Fetch request with a body, which
+    // throws for GET before the handler runs: every route must be buffered.
+    for (const [path, route] of services.state.routes) {
+      assert.equal(route.requestBody, 'buffered', `${path} must use the buffered request body mode`)
+      assert.ok(route.methods.includes('GET') || route.methods.includes('POST'))
     }
 
     const state = await call(services.state, '/api/devin/state')
