@@ -56,7 +56,9 @@ packages/dsh-devin-search-next/
 - 工具 `execute(args, exec)` 里**没有 `cwd`**：用 `ctx.get('workingDirectory').ensure(agent, signal)`，
   回退 `agent.session.header.cwd`。
 - 路由路径必须在 `/api` 之下、方法只能是 `GET/HEAD/POST`（`assertFetchRoute`），
-  处理器是 `Request → Response`。
+  处理器是 `Request → Response`，且 **`requestBody` 必须是 `'buffered'`**：
+  `'streaming'` 会让 carrier 用实时流构造 Fetch `Request`，带 body 的 GET 在进入
+  handler 之前就抛错（1.0.1 的实机回归）。
 - `ctx.slots.register` 的选项：keyed slot 用 `{ name, key }`，list slot 用 `{ name, id, order, label? }`。
 - locale 字典是**扁平点号 key**：`locale.register('devin-search', { en: {...}, zh: {...} })`，
   同一 namespace 重复注册同一语言会抛。
