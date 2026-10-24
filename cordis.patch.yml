@@ -1,0 +1,21 @@
+# dsh-devin-search-next bundle patch.
+#
+# One inserted Host row. The row owns the Devin session, the /devin-* commands,
+# the Devin-backed `web_search` provider and the `code_search` tool.
+#
+# No `config` is declared on the row on purpose: this plugin exports no
+# Schemastery `Config`, and the two switches live in the plugin's own settings
+# file (`$DSH_HOME/devin-search/settings.json`), changed from the settings page
+# or with `/devin-settings`. That keeps the bundle free of harness-internal
+# schema plumbing, which is exactly what used to break between releases.
+#
+# The only other entry selects the Devin provider as the configured web search
+# provider, because the web seam refuses to guess when several providers are
+# usable. It is a plain config override on an existing row: if a future DSH
+# renames or drops that row, the override is ignored instead of breaking us.
+- id: web
+  config:
+    searchProvider: devin
+- insert:
+    - id: devin-search-next
+      name: dsh-devin-search-next

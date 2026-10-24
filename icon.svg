@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Devin Search">
+  <title>Devin Search</title>
+  <defs>
+    <linearGradient id="dsRing" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="dsLens" x1="72" y1="64" x2="188" y2="184" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#111c33"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="#0b1220"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="55.5" fill="none" stroke="#1e293b"/>
+  <circle cx="116" cy="112" r="62" fill="url(#dsLens)" stroke="url(#dsRing)" stroke-width="14"/>
+  <path d="M162 158 L206 202" stroke="url(#dsRing)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M116 74 L125.5 102.5 L154 112 L125.5 121.5 L116 150 L106.5 121.5 L78 112 L106.5 102.5 Z" fill="#e0f2fe"/>
+  <circle cx="146" cy="84" r="7" fill="#7dd3fc"/>
+  <circle cx="86" cy="140" r="5" fill="#a5b4fc"/>
+</svg>

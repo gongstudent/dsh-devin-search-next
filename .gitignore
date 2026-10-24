@@ -1,0 +1,16 @@
+# Runtime data: this package ships lib/, locale/, icon.svg and the patch only.
+node_modules/
+*.tgz
+coverage/
+dist/
+
+# Keep the plugin's own runtime state out of the repo if someone runs it from here.
+.dsh/
+devin-search/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*

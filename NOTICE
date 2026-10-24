@@ -1,0 +1,23 @@
+dsh-devin-search-next is independent of DeepSeek Harness, Devin/Windsurf and piwin.
+
+Protocol field numbers, role encoding, OAuth endpoint/PKCE conventions and
+completion message design were adapted from these MIT-licensed piwin sources:
+  packages/agent-host/src/devin/oauth.ts
+  packages/tools-web/src/devin-search-provider.ts
+  packages/host-runtime/src/code-search/backends/windsurf-protobuf.ts
+  packages/host-runtime/src/code-search/backends/windsurf-protocol.ts
+  packages/host-runtime/src/code-search/completion-port.ts
+Copyright (c) 2026 Piwin contributors. See LICENSE for the MIT permission notice.
+
+The pure-logic modules under `lib/core/` are mechanically ported (type-erased,
+behavior-identical) from the MIT-licensed `dsh-devin-search` implementation, and
+the npm `ignore` dependency was replaced by the bundled `lib/core/gitignore.js`.
+This package imports no piwin package and reads no piwin credential file.
+
+The implementation is a smaller independent client with strict framing, bounded
+IO and an allowlisted local search loop. DSH service integration was verified
+against DeepSeek Harness 0.2.1-rc.3 (bundle gate, tool registration, web search
+provider selection, browser routes, client slots).
+
+Offline fixtures do not establish compatibility with a live provider, account
+entitlements, service availability, prices, or continued authorization.
