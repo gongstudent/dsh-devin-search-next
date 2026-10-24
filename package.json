@@ -1,6 +1,6 @@
 {
   "name": "dsh-devin-search-next",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Devin sign-in plus Devin-backed web_search and code_search for DeepSeek Harness. Zero harness runtime imports, so a DSH upgrade cannot break it.",
   "type": "module",
   "main": "./lib/index.js",
