@@ -76,7 +76,10 @@ describe('safety', () => {
     controller.abort()
     assert.throws(() => check(controller.signal), (thrown) => thrown.code === 'cancelled')
     assert.equal(deadline(controller.signal, 1000).aborted, true)
-    const pending = new Promise(() => {})
+    // A promise that only settles later still counts as "pending" at abort time,
+    // and settles before the process ends so no dangling promise is left behind
+    // (Node's test runner cancels a whole suite over one of those).
+    const pending = new Promise((resolve) => { setTimeout(() => resolve('late'), 50) })
     await assert.rejects(abortable(pending, controller.signal), (thrown) => thrown.code === 'cancelled')
   })
 
@@ -237,7 +240,10 @@ describe('oauth', () => {
     const aborted = new AbortController(); aborted.abort()
     await assert.rejects(oauthCode(aborted.signal, url => notified.push(url), async () => 'unused', { fetcher }),
       (thrown) => thrown.code === 'cancelled')
-    await assert.rejects(oauthCode(liveSignal(), url => notified.push(url), () => new Promise(() => {}), { timeoutMs: 20, fetcher }),
+    // The prompt never answers in time; it still settles afterwards so neither
+    // the test nor the runner is left holding an unresolved promise.
+    const slowPrompt = () => new Promise((resolve) => { setTimeout(() => resolve('too-late'), 80) })
+    await assert.rejects(oauthCode(liveSignal(), url => notified.push(url), slowPrompt, { timeoutMs: 20, fetcher }),
       (thrown) => thrown.code === 'cancelled')
     assert.equal(fetched, 0)
     assert.equal(notified.length, 2)
