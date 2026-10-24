@@ -240,8 +240,12 @@ test('session: access() fails closed without a grant and revoke() marks the gran
     assert.equal(sessions.available(), true)
     // A grant that already existed at activation must not be reported as
     // "Not signed in." just because no login ran in this process.
-    assert.match(sessions.getStatus().message, /^Signed in\. Expires/)
-    assert.match(await sessions.statusText(), /^Signed in\. Expires/)
+    assert.match(sessions.getStatus().message, /^Signed in until /)
+    assert.match(await sessions.statusText(), /^Signed in until /)
+    // Asking to sign in while signed in is a normal outcome, not an error.
+    const again = await sessions.beginLogin('code')
+    assert.equal(again.status, 'already-signed-in')
+    assert.match(again.message, /^Already signed in until \d{4}-\d{2}-\d{2} \d{2}:\d{2} \(no automatic refresh\)/)
     const access = await sessions.access()
     assert.equal(access.token, 'devin-session-token$abc.def.ghi')
 
@@ -382,6 +386,7 @@ test('login flow through the HTTP API: URL, pending state, bad code, cancel', as
   const login = await call(services.state, '/api/devin/login', { method: 'POST', body: { mode: 'code' } })
   assert.equal(login.status, 200)
   assert.equal(login.body.ok, true)
+  assert.equal(login.body.status, 'started')
   assert.match(login.body.attemptId, /^[A-Za-z0-9_-]{32}$/)
   assert.match(login.body.url, /^https:\/\/app\.devin\.ai\/auth\/cli\/continue\?/)
   assert.match(login.body.url, /code_challenge_method=S256/)
@@ -410,6 +415,72 @@ test('login flow through the HTTP API: URL, pending state, bad code, cancel', as
   ctx.disposeAll()
   await new Promise((resolve) => setTimeout(resolve, 50))
   void fetcher
+})
+
+test('slash commands answer normally instead of failing on harmless requests', async () => {
+  // Seed a signed-in session for the shared temporary store, then mount the
+  // plugin and invoke each command handler exactly as the command service does.
+  const store = createStore()
+  await store.writeSession({
+    version: 1,
+    token: 'devin-session-token$cmd.fixture.token',
+    expiresAt: Date.now() + 3_600_000,
+    expirySource: 'fallback',
+  })
+
+  const ctx = createFakeContext()
+  const services = createFakeServices()
+  ctx.provide('commands', services.commands)
+  ctx.provide('web', services.web)
+  ctx.provide('tools', services.tools)
+  ctx.provide('connection', services.connection)
+  try {
+    await apply(ctx, {})
+
+    /** Invoke one registered command the way dsh-commands does. */
+    const run = async (name, rawInput = '') => {
+      const definition = services.state.commands.get(name)
+      assert.ok(definition, `${name} must be registered`)
+      return definition.handler({ rawInput, signal: new AbortController().signal, agent: undefined })
+    }
+
+    // /devin-login while signed in: informational success, local time, no ISO-Z.
+    const login = await run('devin-login')
+    assert.equal(login.kind, 'success', `expected a successful command result, got ${JSON.stringify(login)}`)
+    assert.match(login.text, /Already signed in until \d{4}-\d{2}-\d{2} \d{2}:\d{2}/)
+    assert.doesNotMatch(login.text, /\dT\d{2}:\d{2}:\d{2}/, 'command output must not print raw UTC ISO time')
+
+    // The HTTP route reports the same outcome as a 200 with a status.
+    const route = await call(services.state, '/api/devin/login', { method: 'POST', body: { mode: 'code' } })
+    assert.equal(route.status, 200)
+    assert.equal(route.body.ok, true)
+    assert.equal(route.body.status, 'already-signed-in')
+    assert.equal(typeof route.body.expiresAt, 'number')
+
+    const status = await run('devin-status')
+    assert.equal(status.kind, 'success')
+    assert.match(status.text, /Signed in until \d{4}-\d{2}-\d{2} \d{2}:\d{2}/)
+
+    // /devin-cancel with nothing pending is a success with a truthful message.
+    const cancel = await run('devin-cancel')
+    assert.equal(cancel.kind, 'success')
+    assert.match(cancel.text, /No sign-in is pending/)
+
+    // /devin-settings toggles and reports the switches; bad input is an error.
+    const off = await run('devin-settings', 'code off')
+    assert.equal(off.kind, 'success')
+    assert.match(off.text, /code_search: off/)
+    assert.match(off.text, /web_search: on/)
+    const on = await run('devin-settings', 'code on')
+    assert.equal(on.kind, 'success')
+    assert.match(on.text, /code_search: on/)
+    const bad = await run('devin-settings', 'nonsense')
+    assert.equal(bad.kind, 'error')
+    assert.match(bad.text, /Use \/devin-settings/)
+  } finally {
+    ctx.disposeAll()
+    await store.clearSession()
+  }
 })
 
 test('apply() survives a context with no services at all', async () => {
