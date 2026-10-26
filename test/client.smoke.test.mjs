@@ -3,7 +3,7 @@
  *
  * The bundle's first rule is that it registers and mounts even when the harness
  * moved things around, so these tests use a fake module table and a fake DOM and
- * assert exactly what the bundle claims: its id, its exports, the seven seats it
+ * assert exactly what the bundle claims: its id, its exports, the five seats it
  * claims, the options on each seat, and that every component renders with no
  * props at all.
  */
@@ -152,7 +152,7 @@ test('the module table is asked for react only, and no harness package is refere
   assert.equal(source.includes('/devin/api/'), false, 'routes must live under /api')
 })
 
-test('apply claims all seven seats with the documented registration options', () => {
+test('apply claims the four command rows plus one settings section', () => {
   const slots = createFakeSlots()
   const exports = captured.factory(() => createFakeReact())
   const ctx = createFakeContext({ slots })
@@ -169,11 +169,28 @@ test('apply claims all seven seats with the documented registration options', ()
   const sections = bySlot('settings.section')
   assert.equal(sections.length, 1)
   assert.equal(sections[0].options.id, 'devin-search')
-  assert.equal(typeof sections[0].options.label, 'string')
+  assert.equal(typeof sections[0].options.label, 'function', 'the nav label is a renderer so the entry can carry the plugin glyph')
+  const labelTree = sections[0].options.label()
+  assert.equal(typeof labelTree, 'object')
   assert.equal(typeof sections[0].options.order, 'number')
 
+  // Everything lives on the plugin's own settings page: no rows in General Settings.
   const general = bySlot('settings.general.item')
-  assert.deepEqual(general.map((seat) => seat.options.id).sort(), ['devin-code-search', 'devin-web-search'])
+  assert.deepEqual(general, [])
+})
+
+test('the stylesheet is installed and removed only through its effect cleanup', () => {
+  const slots = createFakeSlots()
+  const exports = captured.factory(() => createFakeReact())
+  const ctx = createFakeContext({ slots })
+  const before = globalThis.document.head.children.length
+  exports.apply(ctx)
+  const after = globalThis.document.head.children.length
+  assert.equal(after, before + 1, 'apply must append exactly one stylesheet node')
+  const tag = globalThis.document.head.children[after - 1]
+  assert.equal(tag.attributes['data-plugin-css'], 'dsh-devin-search-next/client.css')
+  assert.ok(tag.textContent.length > 1000, 'the stylesheet must carry the rules')
+  assert.ok(ctx.effects.length > 0, 'cleanups must be registered as effects, not run during setup')
 })
 
 test('every registered component renders with undefined, empty and junk props', () => {
