@@ -11,11 +11,17 @@
 #
 # The only other entry selects the Devin provider as the configured web search
 # provider, because the web seam refuses to guess when several providers are
-# usable. It is a plain config override on an existing row: if a future DSH
-# renames or drops that row, the override is ignored instead of breaking us.
+# usable. A patch REPLACES the row's whole `config` rather than merging into it
+# (`applyEntryPatches` assigns the object), so both keys are stated here: writing
+# only `searchProvider` would drop the base layer's `fetchProvider: http` pin and
+# leave `web.fetch` auto-selecting between http and deepseek-fetch-api, which
+# throws WEB_PROVIDER_AMBIGUOUS (two always-available fetch providers). Both keys
+# are plain strings on an existing row: if a future DSH renames or drops that
+# row, the override is ignored instead of breaking us.
 - id: web
   config:
     searchProvider: devin
+    fetchProvider: http
 - insert:
     - id: devin-search-next
       name: dsh-devin-search-next
